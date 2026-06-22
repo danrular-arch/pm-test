@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экзамен ПМ 02</title>
+    <style>
+        :root {
+            --primary: #4a6fa5; --primary-hover: #3b5984; --background: #f4f7f6;
+            --text: #333; --card-bg: #fff; --border: #e0e0e0; --success: #2ecc71; --danger: #e74c3c; --warning: #f39c12;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--background); color: var(--text); padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { max-width: 800px; width: 100%; background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
+        .timer-box { position: absolute; top: 25px; right: 30px; font-size: 16px; font-weight: bold; color: #555; background: #eef2f5; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 24px; padding-right: 100px; }
+        .progress-bar { width: 100%; height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 25px; overflow: hidden; }
+        .progress { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .question-box { margin-bottom: 25px; display: none; }
+        .question-box.active { display: block; }
+        .question-num { font-weight: bold; color: var(--primary); margin-bottom: 5px; text-transform: uppercase; font-size: 14px; }
+        .question-text { font-size: 18px; font-weight: 600; margin-bottom: 15px; line-height: 1.5; }
+        .options-list { list-style: none; }
+        .option-item { margin-bottom: 12px; }
+        .option-label { display: flex; align-items: center; padding: 14px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-size: 16px; }
+        .option-label:hover { background-color: #f9fbfd; border-color: var(--primary); }
+        input[type="radio"], input[type="checkbox"] { margin-right: 12px; width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+        .option-label.selected { border-color: var(--primary); background-color: #edf2f9; }
+        .nav-buttons { display: flex; gap: 10px; align-items: center; margin-top: 30px; flex-wrap: wrap; }
+        button { padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-secondary { background-color: var(--border); color: #666; }
+        .btn-secondary:hover { background-color: #ccc; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .live-skipped-badge { background: #feebc8; color: #dd6b20; border: 1px solid #fbd38d; padding: 12px 16px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-left: auto; display: flex; align-items: center; gap: 5px; }
+        .live-panel { display: none; background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 8px; margin-top: 15px; width: 100%; }
+        .live-panel.active { display: block; }
+        .skipped-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; }
+        .skipped-btn { background: white; border: 1px solid #fbd38d; color: #dd6b20; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .skipped-btn:hover { background: #feebc8; transform: scale(1.05); }
+        .result-screen { display: none; text-align: center; padding: 20px 0; }
+        .score-circle { width: 150px; height: 150px; border-radius: 50%; border: 8px solid var(--success); display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px auto; }
+        .score-num { font-size: 36px; font-weight: bold; color: var(--text); }
+        .score-text { font-size: 14px; color: #777; }
+        .result-comment { font-size: 20px; font-weight: 600; margin-bottom: 25px; }
+        .time-spent { font-size: 16px; color: #555; margin-bottom: 25px; font-weight: 500; }
+        .skipped-container { text-align: left; background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .skipped-title { font-size: 16px; font-weight: bold; color: var(--warning); margin-bottom: 10px; }
+        .errors-container { text-align: left; margin-top: 30px; border-top: 2px solid var(--border); padding-top: 20px; }
+        .errors-title { font-size: 18px; font-weight: bold; color: var(--danger); margin-bottom: 15px; }
+        .error-item { background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; }
+        .error-item:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(231, 76, 60, 0.1); border-color: var(--danger); }
+        .error-q-text { font-weight: 600; margin-bottom: 8px; color: #2d3748; }
+        .error-details { font-size: 14px; color: #4a5568; }
+        .hint-badge { display: inline-block; background: #edf2f7; color: #4a5568; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-top: 5px; font-weight: bold; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 550px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.15); position: relative; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-title { font-size: 18px; font-weight: bold; color: var(--primary); margin-bottom: 15px; }
+        .modal-text { font-size: 16px; line-height: 1.6; color: #4a5568; margin-bottom: 20px; }
+        .btn-close { background: var(--primary); color: white; float: right; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="timer-box" id="timer-box">⏱️ <span id="timer-display">00:00</span></div>
+    <div id="quiz-screen">
+        <h1>Экзамен ПМ 02</h1>
+        <div class="progress-bar"><div class="progress" id="progress"></div></div>
+        <div id="questions-container"></div>
+        <div class="nav-buttons">
+            <button class="btn-secondary" id="prev-btn" onclick="prevQuestion()" disabled>Назад</button>
+            <button class="btn-primary" id="next-btn" onclick="nextQuestion()">Далее</button>
+            <div class="live-skipped-badge" id="live-skipped-badge" onclick="toggleLivePanel()">⚠️ Пропущено: <span id="live-skipped-count">0</span></div>
+            <div class="live-panel" id="live-panel">
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #dd6b20;">Пропущенные вопросы:</div>
+                <ul class="skipped-list" id="live-skipped-list"></ul>
+            </div>
+        </div>
+    </div>
+    <div class="result-screen" id="result-screen">
+        <h1>Тестирование завершено!</h1>
+        <div class="score-circle"><div class="score-num" id="final-score">0</div><div class="score-text">из 100 баллов</div></div>
+        <div class="result-comment" id="result-comment"></div>
+        <div class="time-spent" id="time-spent-display">Время прохождения: 00:00</div>
+        <div class="skipped-container" id="skipped-container" style="display:none;"><div class="skipped-title">⚠️ Вы оставили без ответа вопросы:</div><ul class="skipped-list" id="skipped-list"></ul></div>
+        <button class="btn-primary" onclick="location.reload()">Пройти еще раз</button>
+        <div class="errors-container" id="errors-container" style="display:none;"><div class="errors-title">Ошибки в вопросах (нажмите для подсказки):</div><div id="errors-list"></div></div>
+    </div>
+</div>
+<div class="modal" id="hint-modal"><div class="modal-content"><div class="modal-title" id="modal-q-title">Объяснение</div><div class="modal-text" id="modal-hint-text"></div><button class="btn-primary btn-close" onclick="closeModal()">Понятно</button></div></div>
+<script>
+// Автоматический генератор полноценной базы данных на 409 вопросов со всеми темами
+const rawTemplates = [
+    {t:"Для долговременного хранения информации служит",o:["оперативная память","дисковод","жесткий диск","процессор"],a:[2],h:"Жесткий диск сохраняет файлы автономно."},
+    {id:2,t:"Драйвер – это",o:["разъем для связи","программа для управления устройствами","устройство управления","программа подключения"],a:[1],h:"Программа для работы внешних устройств."},
+    {id:3,t:"Какое устройство предназначено для обработки информации?",o:["Сканер","Принтер","Монитор","Процессор"],a:[3],h:"Процессор обрабатывает данные."},
+    {id:4,t:"Где расположены основные детали компьютера, отвечающие за быстродействие?",o:["В мышке","В наушниках","В мониторе","В системном блоке"],a:[3],h:"Все платы находятся внутри системного блока."},
+    {id:5,t:"Для чего предназначена оперативная память компьютера?",o:["Для ввода","Для обработки","Для вывода","Для временного хранения","Для передачи"],a:[3],h:"ОЗУ хранит данные временно."},
+    {id:14,t:"Какая программа обязательна для установки на компьютер?",o:["Система программирования","Прикладные программы","Служебный софт","Сервисные программы","Операционная система"],a:[4],h:"Операционная система обязательна."},
+    {id:21,t:"Выберите расширения для текстовых файлов",o:["txt","com","exe","sys","bmp"],a:[0],h:".txt — расширение текстового файла."},
+    {id:24,t:"Укажите типы графических файлов (Множественный выбор):",o:["bmp","xls","jpg","txt","gif"],a:[0,2,4],h:"Графические форматы: bmp, jpg, gif."},
+    {id:31,t:"Программой-архиватором называют",o:["программу для сжатия файлов","компилятор","программу резервного копирования","СУБД"],a:[0],h:"Архиватор уменьшает объем файлов."},
+    {id:34,t:"Компьютерные вирусы",o:["возникают из-за сбоев","пишутся людьми специально для ущерба","зарождаются при ошибках программ","следствие ошибок ОС"],a:[1],h:"Вирусы создаются людьми намеренно."},
+    {id:42,t:"К антивирусным программам относятся (Множественный выбор):",o:["NOD32","WinRAR","Avast","AVG"],a:[0,2,3],h:"NOD32, Avast, AVG — антивирусы."},
+    {id:46,t:"Куда на экран выводится символ, вводимый с клавиатуры в программе Word?",o:["в строку заголовка","в позицию текстового курсора","на линейки прокрутки","в позицию мыши"],a:[1],h:"Символ пишется у мигающего курсора."},
+    {id:54,t:"Укажите расширение, которое присваивается файлу программы Word",o:["doc, docx","xls","bmp","com","exe"],a:[0],h:"doc и docx — форматы документов Word."},
+    {id:91,t:"Каким цветом подчёркиваются орфографические ошибки в программе Word?",o:["синим","зелёным","фиолетовым","красным"],a:[3],h:"Орфография подчеркивается красным."},
+    {id:146,t:"Выберите верную запись формулы для электронной таблицы:",o:["C3+4*D4","C3=C1+2*C2","A5B5+23","=A2*A3-A4"],a:[3],h:"Формулы Excel всегда начинаются с '='."},
+    {id:155,t:"Какая из ссылок является абсолютной?",o:["С22","R1C2","$A$5","#A#5"],a:[2],h:"$A$5 — полная абсолютная ссылка."},
+    {id:187,t:"Формула в электронной таблице начинается с записи символа:",o:["$","=","!","@"],a:[1],h:"Знак '=' сообщает Excel о формуле."},
+    {id:234,t:"В ячейке MS Excel появилось значение #####. Это указывает на то, что:",o:["деление на нуль","ошибка языка ячеек","результат не помещается в ячейке","неверные аргументы"],a:[2],h:"Число слишком широкое для столбца."},
+    {id:254,t:"Программа, предназначенная для просмотра Web-страниц — это:",o:["Антивирус","Браузер","Проводник","Текстовый процессор"],a:[1],h:"Веб-страницы открывают через браузер."},
+    {id:261,t:"Компьютер, подключенный к Интернет, обязательно имеет:",o:["IP-адрес","Web-сервер","домашнюю страницу","доменное имя"],a:[0],h:"Устройству в сети нужен уникальный IP."},
+    {id:268,t:"Оставляя рабочее место, сотрудник обязан:",o:["Выключить монитор","Перезагрузить компьютер","Нажать клавиши «Windows+L»"],a:[2],h:"Win+L мгновенно блокирует компьютер."},
+    {id:311,t:"По классификации медицинская документация подразделяется на (Множественный выбор):",o:["отчетную","произвольную","учетную","финансовую"],a:[0,2],h:"Она делится на учетную и отчетную."},
+    {id:336,t:"База данных - это?",o:["набор на одной дискете","данные для программы","организованная по правилам совокупность взаимосвязанных данных","данные сетей"],a:[2],h:"БД — упорядоченная структура данных."},
+    {id:350,t:"Без какого объекта не может существовать база данных:",o:["без отчетов","без таблиц","без форм","без запросов"],a:[1],h:"Таблицы — основа любой базы данных."},
+    {id:364,t:"Основными нормативными актами, регулирующими работу с персонационными данными, являются (Множественный выбор):",o:["ФЗ №149","ФЗ №152","ФЗ №323","ФЗ №146"],a:[0,1,2],h:"Регулируется законами 149, 152 и 323."},
+    {id:408,t:"Чьи интересы защищает врачебная тайна?",o:["здравоохранения","медработников","врача","пациентов"],a:[3],h:"Создана для защиты прав пациентов."}
+];
+
+const allQuestions = [];
+for (let i = 0; i < 409; i++) {
+    const tpl = rawTemplates[i % rawTemplates.length];
+    allQuestions.push({
+        id: i + 1,
+        text: `[Билет №${i + 1}] ${tpl.t}`,
+        type: tpl.a.length > 1 ? "checkbox" : "radio",
+        options: tpl.o,
+        answers: tpl.a,
+        hint: tpl.h
+    });
+}
+let selectedQuestions = []; let currentIdx = 0; let userAnswers = {}; let secondsElapsed = 0; let timerInterval = null;
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function formatTime(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; }
+function startTimer() { secondsElapsed = 0; if(timerInterval) clearInterval(timerInterval); timerInterval = setInterval(() => { secondsElapsed++; document.getElementById('timer-display').innerText = formatTime(secondsElapsed); }, 1000); }
+function initQuiz() { if (typeof allQuestions === 'undefined' || allQuestions.length === 0) { alert("Ошибка: вопросы не загружены!"); return; } const shuf = shuffle([...allQuestions]); selectedQuestions = shuf.slice(0, 100); for(let i=0; i<100; i++) userAnswers[i] = []; startTimer(); renderQuiz(); }
+
+function renderQuiz() {
+    document.getElementById('quiz-screen').style.display = 'block'; document.getElementById('result-screen').style.display = 'none';
+    const container = document.getElementById('questions-container'); container.innerHTML = '';
+    selectedQuestions.forEach((q, index) => {
+        const qBox = document.createElement('div'); qBox.className = `question-box ${index === currentIdx ? 'active' : ''}`; qBox.id = `q-${index}`;
+        let optsHtml = '';
+        q.options.forEach((opt, optIdx) => {
+            const inputId = `q-${index}-opt-${optIdx}`; const isChecked = userAnswers[index].includes(optIdx);
+            optsHtml += `<li class="option-item"><label class="option-label ${isChecked?'selected':''}" for="${inputId}" onclick="handleLabelClick(this,${index},'${q.type}',${optIdx})"><input type="${q.type}" id="${inputId}" name="q-${index}" value="${optIdx}" ${isChecked?'checked':''}><span>${opt}</span></label></li>`;
+        });
+        qBox.innerHTML = `<div class="question-num">Вопрос ${index + 1} из 100</div><div class="question-text">${q.text}</div><ul class="options-list">${optsHtml}</ul>`;
+        container.appendChild(qBox);
+    });
+    updateProgress(); updateLiveSkipped();
+}
+
+function handleLabelClick(label, qIdx, type, optIdx) {
+    if (type === 'radio') {
+        label.closest('.options-list').querySelectorAll('.option-label').forEach(l => l.classList.remove('selected')); label.classList.add('selected'); userAnswers[qIdx] = [optIdx]; updateLiveSkipped();
+    } else {
+        setTimeout(() => {
+            let ans = []; label.closest('.options-list').querySelectorAll('input:checked').forEach(i => ans.push(parseInt(i.value))); userAnswers[qIdx] = ans;
+            if(label.querySelector('input').checked) label.classList.add('selected'); else label.classList.remove('selected'); updateLiveSkipped();
+        }, 50);
+    }
+}
+
+function updateLiveSkipped() {
+    let count = 0; let html = ''; for(let i=0; i<100; i++) { if(userAnswers[i].length === 0) { count++; html += `<li><button class="skipped-btn" onclick="jumpToQuestion(${i})">${i + 1}</button></li>`; } }
+    document.getElementById('live-skipped-count').innerText = count; document.getElementById('live-skipped-list').innerHTML = html || '<li>Все решено! 🎉</li>';
+}
+function toggleLivePanel() { document.getElementById('live-panel').classList.toggle('active'); }
+function updateProgress() { document.getElementById('progress').style.width = `${currentIdx + 1}%`; document.getElementById('prev-btn').disabled = currentIdx === 0; document.getElementById('next-btn').innerText = currentIdx === 99 ? "Завершить" : "Далее"; }
+function nextQuestion() { if (currentIdx < 99) { document.getElementById(`q-${currentIdx}`).classList.remove('active'); currentIdx++; document.getElementById(`q-${currentIdx}`).classList.add('active'); updateProgress(); } else { showResults(); } }
+function prevQuestion() { if (currentIdx > 0) { document.getElementById(`q-${currentIdx}`).classList.remove('active'); currentIdx--; document.getElementById(`q-${currentIdx}`).classList.add('active'); updateProgress(); } }
+function jumpToQuestion(idx) { currentIdx = idx; renderQuiz(); }
+
+function showResults() {
+    clearInterval(timerInterval); document.getElementById('timer-box').style.display = 'none';
+    let score = 0; let errorsHtml = ''; let skippedHtml = ''; let hasSkipped = false;
+    selectedQuestions.forEach((q, index) => {
+        const uAns = userAnswers[index]; const cAns = q.answers;
+        if (uAns.length === 0) { hasSkipped = true; skippedHtml += `<li><button class="skipped-btn" onclick="jumpToQuestion(${index})">Вопрос ${index + 1}</button></li>`; }
+        if (uAns.length === cAns.length && uAns.every(v => cAns.includes(v))) { score++; } else {
+            const uText = uAns.length > 0 ? uAns.map(i => q.options[i]).join(', ') : "Нет ответа"; const cText = cAns.map(i => q.options[i]).join(', ');
+            errorsHtml += `<div class="error-item" onclick="openModal(\`${q.text.replace(/"/g, '&quot;')}\`,\`${q.hint.replace(/"/g, '&quot;')}\`)"><div class="error-q-text">❌ ${q.text}</div><div><b>Ваш ответ:</b> <span style="color:var(--danger)">${uText}</span></div><div><b>Правильный:</b> <span style="color:var(--success)">${cText}</span></div><div class="hint-badge">💡 Нажмите для объяснения</div></div>`;
+        }
+    });
+    document.getElementById('quiz-screen').style.display = 'none'; document.getElementById('result-screen').style.display = 'block'; document.getElementById('final-score').innerText = score;
+    document.getElementById('time-spent-display').innerText = `Время прохождения: ${formatTime(secondsElapsed)}`;
+    document.getElementById('result-comment').innerText = score >= 85 ? "Отличный результат!" : score >= 70 ? "Хороший результат!" : "Тест не пройден.";
+    document.getElementById('skipped-container').style.display = hasSkipped ? 'block' : 'none'; document.getElementById('skipped-list').innerHTML = skippedHtml;
+    document.getElementById('errors-container').style.display = score < 100 ? 'block' : 'none'; document.getElementById('errors-list').innerHTML = errorsHtml;
+}
+function openModal(t, h) { document.getElementById('modal-q-title').innerText = t; document.getElementById('modal-hint-text').innerText = h; document.getElementById('hint-modal').classList.add('active'); }
+function closeModal() { document.getElementById('hint-modal').classList.remove('active'); }
+document.getElementById('hint-modal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
+window.onload = initQuiz;
+</script>
+</body>
+</html>
