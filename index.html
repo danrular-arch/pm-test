@@ -93,35 +93,33 @@
 <div class="modal" id="hint-modal"><div class="modal-content"><div class="modal-title" id="modal-q-title">Объяснение</div><div class="modal-text" id="modal-hint-text"></div><button class="btn-primary btn-close" onclick="closeModal()">Понятно</button></div></div>
 <script>
 let allQuestions = [];
-let selectedQuestions = []; 
-let currentIdx = 0; 
-let userAnswers = {}; 
-let secondsElapsed = 0; 
+let selectedQuestions = [];
+let currentIdx = 0;
+let userAnswers = {};
+let secondsElapsed = 0;
 let timerInterval = null;
 
-// Функция для перемешивания вопросов
-function shuffle(a) { 
-    for (let i = a.length - 1; i > 0; i--) { 
-        const j = Math.floor(Math.random() * (i + 1)); 
-        [a[i], a[j]] = [a[j], a[i]]; 
-    } 
-    return a; 
+function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }
 
-function formatTime(s) { 
-    return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; 
+function formatTime(s) {
+    return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 }
 
-function startTimer() { 
-    secondsElapsed = 0; 
-    if(timerInterval) clearInterval(timerInterval); 
-    timerInterval = setInterval(() => { 
-        secondsElapsed++; 
-        document.getElementById('timer-display').innerText = formatTime(secondsElapsed); 
-    }, 1000); 
+function startTimer() {
+    secondsElapsed = 0;
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        secondsElapsed++;
+        document.getElementById('timer-display').innerText = formatTime(secondsElapsed);
+    }, 1000);
 }
 
-// Загрузка вопросов из файла questions.json
 async function loadQuestions() {
     try {
         const response = await fetch('questions.json');
@@ -130,7 +128,6 @@ async function loadQuestions() {
         }
         const data = await response.json();
         
-        // Преобразуем сокращенные ключи из JSON (t, o, a, h) в формат, который использует тест
         allQuestions = data.map((q, i) => ({
             id: i + 1,
             text: `[Вопрос №${i + 1}] ${q.t}`,
@@ -140,7 +137,6 @@ async function loadQuestions() {
             hint: q.h
         }));
 
-        // После успешной загрузки запускаем сам тест
         initQuiz();
     } catch (error) {
         console.error("Не удалось загрузить вопросы:", error);
@@ -148,35 +144,35 @@ async function loadQuestions() {
     }
 }
 
-function initQuiz() { 
-    if (allQuestions.length === 0) { 
-        alert("Ошибка: база вопросов пуста!"); 
-        return; 
-    } 
-    const shuf = shuffle([...allQuestions]); 
-    selectedQuestions = shuf.slice(0, 100); // Выбираем 100 случайных из 409
+function initQuiz() {
+    if (allQuestions.length === 0) {
+        alert("Ошибка: база вопросов пуста!");
+        return;
+    }
+    const shuf = shuffle([...allQuestions]);
+    selectedQuestions = shuf.slice(0, 100);
     
     for(let i=0; i<100; i++) {
-        userAnswers[i] = []; 
+        userAnswers[i] = [];
     }
-    startTimer(); 
-    renderQuiz(); 
+    startTimer();
+    renderQuiz();
 }
 
 function renderQuiz() {
-    document.getElementById('quiz-screen').style.display = 'block'; 
+    document.getElementById('quiz-screen').style.display = 'block';
     document.getElementById('result-screen').style.display = 'none';
-    const container = document.getElementById('questions-container'); 
+    const container = document.getElementById('questions-container');
     container.innerHTML = '';
     
     selectedQuestions.forEach((q, index) => {
-        const qBox = document.createElement('div'); 
-        qBox.className = `question-box ${index === currentIdx ? 'active' : ''}`; 
+        const qBox = document.createElement('div');
+        qBox.className = `question-box ${index === currentIdx ? 'active' : ''}`;
         qBox.id = `q-${index}`;
         let optsHtml = '';
         
         q.options.forEach((opt, optIdx) => {
-            const inputId = `q-${index}-opt-${optIdx}`; 
+            const inputId = `q-${index}-opt-${optIdx}`;
             const isChecked = userAnswers[index].includes(optIdx);
             optsHtml += `<li class="option-item"><label class="option-label ${isChecked?'selected':''}" for="${inputId}" onclick="handleLabelClick(this,${index},'${q.type}',${optIdx})"><input type="${q.type}" id="${inputId}" name="q-${index}" value="${optIdx}" ${isChecked?'checked':''}><span>${opt}</span></label></li>`;
         });
@@ -184,114 +180,113 @@ function renderQuiz() {
         qBox.innerHTML = `<div class="question-num">Вопрос ${index + 1} из 100</div><div class="question-text">${q.text}</div><ul class="options-list">${optsHtml}</ul>`;
         container.appendChild(qBox);
     });
-    updateProgress(); 
+    updateProgress();
     updateLiveSkipped();
 }
 
 function handleLabelClick(label, qIdx, type, optIdx) {
     if (type === 'radio') {
-        label.closest('.options-list').querySelectorAll('.option-label').forEach(l => l.classList.remove('selected')); 
-        label.classList.add('selected'); 
-        userAnswers[qIdx] = [optIdx]; 
+        label.closest('.options-list').querySelectorAll('.option-label').forEach(l => l.classList.remove('selected'));
+        label.classList.add('selected');
+        userAnswers[qIdx] = [optIdx];
         updateLiveSkipped();
     } else {
         setTimeout(() => {
-            let ans = []; 
-            label.closest('.options-list').querySelectorAll('input:checked').forEach(i => ans.push(parseInt(i.value))); 
+            let ans = [];
+            label.closest('.options-list').querySelectorAll('input:checked').forEach(i => ans.push(parseInt(i.value)));
             userAnswers[qIdx] = ans;
-            if(label.querySelector('input').checked) label.classList.add('selected'); else label.classList.remove('selected'); 
+            if(label.querySelector('input').checked) label.classList.add('selected'); else label.classList.remove('selected');
             updateLiveSkipped();
         }, 50);
     }
 }
 
 function updateLiveSkipped() {
-    let count = 0; 
-    let html = ''; 
-    for(let i=0; i<100; i++) { 
-        if(userAnswers[i].length === 0) { 
-            count++; 
-            html += `<li><button class="skipped-btn" onclick="jumpToQuestion(${i})">${i + 1}</button></li>`; 
-        } 
+    let count = 0;
+    let html = '';
+    for(let i=0; i<100; i++) {
+        if(userAnswers[i].length === 0) {
+            count++;
+            html += `<li><button class="skipped-btn" onclick="jumpToQuestion(${i})">${i + 1}</button></li>`;
+        }
     }
-    document.getElementById('live-skipped-count').innerText = count; 
+    document.getElementById('live-skipped-count').innerText = count;
     document.getElementById('live-skipped-list').innerHTML = html || '<li>Все решено! 🎉</li>';
 }
 
 function toggleLivePanel() { document.getElementById('live-panel').classList.toggle('active'); }
-function updateProgress() { 
-    document.getElementById('progress').style.width = `${currentIdx + 1}%`; 
-    document.getElementById('prev-btn').disabled = currentIdx === 0; 
-    document.getElementById('next-btn').innerText = currentIdx === 99 ? "Завершить" : "Далее"; 
+function updateProgress() {
+    document.getElementById('progress').style.width = `${currentIdx + 1}%`;
+    document.getElementById('prev-btn').disabled = currentIdx === 0;
+    document.getElementById('next-btn').innerText = currentIdx === 99 ? "Завершить" : "Далее";
 }
 
-function nextQuestion() { 
-    if (currentIdx < 99) { 
-        document.getElementById(`q-${currentIdx}`).classList.remove('active'); 
-        currentIdx++; 
-        document.getElementById(`q-${currentIdx}`).classList.add('active'); 
-        updateProgress(); 
-    } else { 
-        showResults(); 
-    } 
+function nextQuestion() {
+    if (currentIdx < 99) {
+        document.getElementById(`q-${currentIdx}`).classList.remove('active');
+        currentIdx++;
+        document.getElementById(`q-${currentIdx}`).classList.add('active');
+        updateProgress();
+    } else {
+        showResults();
+    }
 }
 
-function prevQuestion() { 
-    if (currentIdx > 0) { 
-        document.getElementById(`q-${currentIdx}`).classList.remove('active'); 
-        currentIdx--; 
-        document.getElementById(`q-${currentIdx}`).classList.add('active'); 
-        updateProgress(); 
-    } 
+function prevQuestion() {
+    if (currentIdx > 0) {
+        document.getElementById(`q-${currentIdx}`).classList.remove('active');
+        currentIdx--;
+        document.getElementById(`q-${currentIdx}`).classList.add('active');
+        updateProgress();
+    }
 }
 
 function jumpToQuestion(idx) { currentIdx = idx; renderQuiz(); }
 
 function showResults() {
-    clearInterval(timerInterval); 
+    clearInterval(timerInterval);
     document.getElementById('timer-box').style.display = 'none';
-    let score = 0; 
-    let errorsHtml = ''; 
-    let skippedHtml = ''; 
+    let score = 0;
+    let errorsHtml = '';
+    let skippedHtml = '';
     let hasSkipped = false;
     
     selectedQuestions.forEach((q, index) => {
-        const uAns = userAnswers[index]; 
+        const uAns = userAnswers[index];
         const cAns = q.answers;
-        if (uAns.length === 0) { 
-            hasSkipped = true; 
-            skippedHtml += `<li><button class="skipped-btn" onclick="jumpToQuestion(${index})">Вопрос ${index + 1}</button></li>`; 
+        if (uAns.length === 0) {
+            hasSkipped = true;
+            skippedHtml += `<li><button class="skipped-btn" onclick="jumpToQuestion(${index})">Вопрос ${index + 1}</button></li>`;
         }
-        if (uAns.length === cAns.length && uAns.every(v => cAns.includes(v))) { 
-            score++; 
+        if (uAns.length === cAns.length && uAns.every(v => cAns.includes(v))) {
+            score++;
         } else {
-            const uText = uAns.length > 0 ? uAns.map(i => q.options[i]).join(', ') : "Нет ответа"; 
+            const uText = uAns.length > 0 ? uAns.map(i => q.options[i]).join(', ') : "Нет ответа";
             const cText = cAns.map(i => q.options[i]).join(', ');
             errorsHtml += `<div class="error-item" onclick="openModal(\`${q.text.replace(/"/g, '&quot;')}\`,\`${q.hint.replace(/"/g, '&quot;')}\`)"><div class="error-q-text">❌ ${q.text}</div><div><b>Ваш ответ:</b> <span style="color:var(--danger)">${uText}</span></div><div><b>Правильный:</b> <span style="color:var(--success)">${cText}</span></div><div class="hint-badge">💡 Нажмите для объяснения</div></div>`;
         }
     });
     
-    document.getElementById('quiz-screen').style.display = 'none'; 
-    document.getElementById('result-screen').style.display = 'block'; 
+    document.getElementById('quiz-screen').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
     document.getElementById('final-score').innerText = score;
     document.getElementById('time-spent-display').innerText = `Время прохождения: ${formatTime(secondsElapsed)}`;
     document.getElementById('result-comment').innerText = score >= 85 ? "Отличный результат!" : score >= 70 ? "Хороший результат!" : "Тест не пройден.";
-    document.getElementById('skipped-container').style.display = hasSkipped ? 'block' : 'none'; 
+    document.getElementById('skipped-container').style.display = hasSkipped ? 'block' : 'none';
     document.getElementById('skipped-list').innerHTML = skippedHtml;
-    document.getElementById('errors-container').style.display = score < 100 ? 'block' : 'none'; 
+    document.getElementById('errors-container').style.display = score < 100 ? 'block' : 'none';
     document.getElementById('errors-list').innerHTML = errorsHtml;
 }
 
-function openModal(t, h) { 
-    document.getElementById('modal-q-title').innerText = t; 
-    document.getElementById('modal-hint-text').innerText = h; 
-    document.getElementById('hint-modal').classList.add('active'); 
+function openModal(t, h) {
+    document.getElementById('modal-q-title').innerText = t;
+    document.getElementById('modal-hint-text').innerText = h;
+    document.getElementById('hint-modal').classList.add('active');
 }
 
 function closeModal() { document.getElementById('hint-modal').classList.remove('active'); }
 document.getElementById('hint-modal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
 
-// При загрузке страницы первым делом стягиваем JSON с гитхаба
 window.onload = loadQuestions;
 </script>
 </body>
